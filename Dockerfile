@@ -18,6 +18,7 @@ RUN arch="$(dpkg --print-architecture)" \
 	&& chmod +x /usr/local/bin/gosu
 
 ENV GHOST_SOURCE /usr/src/ghost
+ENV GHOST_ROOT_URL http://www.8086.me
 WORKDIR $GHOST_SOURCE
 
 ENV GHOST_VERSION 0.6.4
@@ -32,18 +33,24 @@ RUN buildDeps=' \
 	&& apt-get update && apt-get install -y $buildDeps --no-install-recommends && rm -rf /var/lib/apt/lists/* \
 	&& curl -sSL "https://ghost.org/archives/ghost-${GHOST_VERSION}.zip" -o ghost.zip \
 	&& unzip ghost.zip \
+	&& curl -sSL "https://github.com/lanmp/Casper/archive/zh_CN.zip" -o theme.zip \
+	&& unzip theme.zip -d ./content/themes \
 	&& npm install --production \
 	&& apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false -o APT::AutoRemove::SuggestsImportant=false $buildDeps \
 	&& rm ghost.zip \
+	&& rm theme.zip \
 	&& npm cache clean \
 	&& rm -rf /tmp/npm*
 
 ENV GHOST_CONTENT /var/lib/ghost
-RUN mkdir -p "$GHOST_CONTENT" && chown -R user:user "$GHOST_CONTENT"
-VOLUME $GHOST_CONTENT
+RUN mkdir -p "$GHOST_CONTENT" && chown -R user:user "$GHOST_CONTENT" "$GHOST_SOURCE"
+#VOLUME $GHOST_CONTENT
+
+#COPY config.js $GHOST_SOURCE/config.js
+ADD config.js /var/lib/ghost/
 
 COPY docker-entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 2368
-CMD ["npm", "start"]
+CMD ["npm", "start", "--production"]
